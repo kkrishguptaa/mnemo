@@ -69,8 +69,7 @@ func write(cmd *cobra.Command, args []string) error {
 		util.ErrorPrinter(fmt.Errorf("you cannot write a letter for a past date: %s", Date.Format("2006-01-02")))
 	}
 
-	home := util.ErrorHandler(os.UserHomeDir())
-	directory := home + "/.iris/letters"
+	directory := util.LettersPath
 
 	util.ErrorPrinter((os.MkdirAll(directory, 0755)))
 

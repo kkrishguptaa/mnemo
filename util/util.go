@@ -37,3 +37,7 @@ func SuccessPrinter(message string) {
 	successMessage := successStyle.Render("Success: " + message)
 	println(successMessage)
 }
+
+var home = ErrorHandler(os.UserHomeDir())
+
+var LettersPath = home + "/.iris/letters"
