@@ -1,6 +1,7 @@
 package util
 
 import (
+	"encoding/json"
 	"os"
 
 	"github.com/charmbracelet/lipgloss"
@@ -40,4 +41,41 @@ func SuccessPrinter(message string) {
 
 var home = ErrorHandler(os.UserHomeDir())
 
-var LettersPath = home + "/.iris/letters"
+func FetchData() []string {
+	folder := home + "/.mnemo"
+
+	ErrorPrinter(os.MkdirAll(folder, 0755))
+
+	filepath := folder + "/data.json"
+
+	if _, err := os.Stat(filepath); os.IsNotExist(err) {
+		file := ErrorHandler(os.Create(filepath))
+
+		file.Write([]byte("[]"))
+
+		defer file.Close()
+	}
+
+	file := ErrorHandler(os.ReadFile(filepath))
+
+	if len(file) == 0 {
+		os.WriteFile(filepath, []byte("[]"), 0644)
+	}
+
+	var data []string
+
+	ErrorPrinter(json.Unmarshal(file, &data))
+
+	return data
+}
+
+func SaveData(data []byte) {
+	folder := home + "/.mnemo"
+
+	ErrorPrinter(os.MkdirAll(folder, 0755))
+
+	filepath := folder + "/data.json"
+
+	os.WriteFile(filepath, data, 0644)
+	SuccessPrinter("Data saved successfully.")
+}
