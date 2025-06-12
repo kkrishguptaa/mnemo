@@ -8,7 +8,7 @@ import (
 
 func ErrorPrinter(err error) {
 	if err != nil {
-		errorStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("9")).Bold(true).BorderBottom(true).BorderStyle(lipgloss.NormalBorder())
+		errorStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("9")).Bold(true).BorderTop(true).BorderBottom(true).BorderStyle(lipgloss.NormalBorder())
 		errorMessage := errorStyle.Render("Error: " + err.Error())
 		println(errorMessage)
 		os.Exit(1)

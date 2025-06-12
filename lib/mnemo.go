@@ -1,12 +1,15 @@
 package lib
 
 import (
+	"crypto/sha256"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"os"
 	"path"
 	"strings"
 
+	"github.com/gtank/cryptopasta"
 	"github.com/kkrishguptaa/mnemo/util"
 )
 
@@ -24,18 +27,45 @@ type Snippet struct {
 var home = util.ErrorHandler(os.UserHomeDir())
 var stores = path.Join(home, ".mnemo", "stores")
 
+func Encrypt(value string, password string) string {
+	password = strings.TrimSpace(password)
+	hash := sha256.Sum256([]byte(password))
+	cipher := util.ErrorHandler(cryptopasta.Encrypt([]byte(value), &hash))
+
+	return base64.StdEncoding.EncodeToString(cipher)
+}
+
+func Decrypt(value string, password string) string {
+	password = strings.TrimSpace(password)
+	hash := sha256.Sum256([]byte(password))
+
+	decoded, err := base64.StdEncoding.DecodeString(value)
+	util.ErrorPrinter(err) // or panic(err), or your own handler
+
+	decrypted := util.ErrorHandler(cryptopasta.Decrypt(decoded, &hash))
+	return string(decrypted)
+}
+
 func FetchStore(name string) Store {
 	file := path.Join(stores, name+".json")
 
+	if _, err := os.Stat(stores); os.IsNotExist(err) {
+		util.ErrorPrinter(os.MkdirAll(stores, 0755))
+	}
+
 	if _, err := os.Stat(file); os.IsNotExist(err) {
-		util.ErrorPrinter(fmt.Errorf("store %s does not exist", name))
-		return Store{}
+		if name != "default" {
+			util.ErrorPrinter(fmt.Errorf("store %s does not exist", name))
+			return Store{}
+		}
+
+		CreateStore(name)
 	}
 
 	bytes := util.ErrorHandler(os.ReadFile(file))
 
 	store := Store{Name: name}
-	util.ErrorPrinter(json.Unmarshal(bytes, &store.Data))
+	util.ErrorPrinter(json.Unmarshal(bytes, &store))
 
 	return store
 }
