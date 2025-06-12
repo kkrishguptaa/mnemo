@@ -17,23 +17,22 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 package cmd
 
 import (
-	"encoding/json"
-	"fmt"
 	"os"
 
-	"github.com/kkrishguptaa/iris/util"
 	"github.com/spf13/cobra"
 )
 
 // rootCmd represents the base command when called without any subcommands
+
 var rootCmd = &cobra.Command{
 	Use:   "mnemo",
-	Short: "Save small snippets of data and access them when needed.",
-	Run:   mnemo,
+	Short: "Think snippets, think mnemo",
+	Long:  `mnemo lets you store and manage snippets of code, text, and other information in a structured way. You can create, edit, and delete snippets, organize them into categories, and search for them easily. It is designed to help you remember and retrieve important information quickly. It also has support for encryption, allowing you to securely store sensitive information.`,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		return cmd.Help()
+	},
 }
 
-// Execute adds all child commands to the root command and sets flags appropriately.
-// This is called by main.main(). It only needs to happen once to the rootCmd.
 func Execute() {
 	err := rootCmd.Execute()
 	if err != nil {
@@ -41,29 +40,9 @@ func Execute() {
 	}
 }
 
-func mnemo(cmd *cobra.Command, args []string) {
-	// If there are 0 arguments, print the list of saved data
-	// if there are 1 or more arguments, save the data
-	if len(args) == 0 {
-		data := util.FetchData()
-
-		if len(data) == 0 {
-			util.ErrorPrinter(fmt.Errorf("no data found. please save some data first using `mnemo <data>` command"))
-			return
-		}
-
-		for i, d := range data {
-			fmt.Printf("%d: %s\n", i+1, d)
-		}
-		return
-	}
-
-	// If there are arguments, save the data
-	data := util.FetchData()
-
-	data = append(data, args...)
-
-	newData := util.ErrorHandler(json.Marshal(data))
-
-	util.SaveData(newData)
+func init() {
+	rootCmd.AddGroup(&cobra.Group{
+		ID:    "mnemo",
+		Title: "Mnemo Commands",
+	})
 }

@@ -43,7 +43,7 @@ success "Removed old binaries"
 
 CrossBuild=true
 AppVersion="0.1.0"
-AppName="iris"
+AppName="mnemo"
 GoBuildTags=""
 OutDir="$cwd/bin"
 
