@@ -30,9 +30,8 @@ import (
 var snipCmd = &cobra.Command{
 	Use:   "snip",
 	Short: "Manage your snippets",
-	RunE: func(cmd *cobra.Command, args []string) error {
-		return cmd.Help()
-	},
+	Run:   listSnippets,
+	Args:  cobra.NoArgs,
 }
 
 func listSnippets(cmd *cobra.Command, args []string) {
@@ -137,6 +136,39 @@ func ReadSnip(cmd *cobra.Command, args []string) {
 	util.ErrorPrinter(fmt.Errorf("snippet with key '%s' not found in store '%s'", key, store))
 }
 
+func DeleteSnip(cmd *cobra.Command, args []string) {
+	store, _ := cmd.Flags().GetString("store")
+	if store == "" {
+		store = "default"
+	}
+
+	if len(args) != 1 {
+		cmd.Help()
+		return
+	}
+
+	key := args[0]
+
+	Store := lib.FetchStore(store)
+
+	snips := []lib.Snippet{}
+
+	for _, snippet := range Store.Data {
+		if snippet.Id != key {
+			snips = append(snips, snippet)
+		}
+	}
+
+	if len(snips) == len(Store.Data) {
+		util.ErrorPrinter(fmt.Errorf("snippet with key '%s' not found in store '%s'", key, store))
+		return
+	}
+
+	lib.WriteStore(store, snips)
+
+	util.SuccessPrinter(fmt.Sprintf("Snippet with key '%s' deleted successfully from store '%s'", key, store))
+}
+
 func init() {
 	var listSnipsCmd = &cobra.Command{
 		Use:     "list",
@@ -144,7 +176,7 @@ func init() {
 		Aliases: []string{"ls"},
 		Run:     listSnippets,
 	}
-	ApplySnipFlags(listSnipsCmd)
+	ApplySnipStoreFlag(listSnipsCmd)
 	snipCmd.AddCommand(listSnipsCmd)
 
 	var createSnipCmd = &cobra.Command{
@@ -154,8 +186,8 @@ func init() {
 		Args:  cobra.ExactArgs(2),
 		Run:   CreateSnip,
 	}
-	ApplySnipFlags(createSnipCmd)
-	createSnipCmd.Flags().StringP("password", "p", "", "Password for the store (if you want it encrypted)")
+	ApplySnipStoreFlag(createSnipCmd)
+	ApplySnipPasswordFlag(createSnipCmd)
 	snipCmd.AddCommand(createSnipCmd)
 
 	var readSnipCmd = &cobra.Command{
@@ -165,24 +197,28 @@ func init() {
 		Args:  cobra.ExactArgs(1),
 		Run:   ReadSnip,
 	}
-	ApplySnipFlags(readSnipCmd)
-	readSnipCmd.Flags().StringP("password", "p", "", "Password for the snippet (if it is encrypted)")
+	ApplySnipStoreFlag(readSnipCmd)
+	ApplySnipPasswordFlag(readSnipCmd)
 	snipCmd.AddCommand(readSnipCmd)
 
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// snipCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// snipCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	var deleteSnipCmd = &cobra.Command{
+		Use:   "delete [key]",
+		Short: "Delete a snippet from the specified store",
+		Long:  `Delete a snippet with the specified key from the specified store.`,
+		Args:  cobra.ExactArgs(1),
+		Run:   DeleteSnip,
+	}
+	ApplySnipStoreFlag(deleteSnipCmd)
+	snipCmd.AddCommand(deleteSnipCmd)
 
 	rootCmd.AddCommand(snipCmd)
 
 }
 
-func ApplySnipFlags(cmd *cobra.Command) {
+func ApplySnipStoreFlag(cmd *cobra.Command) {
 	cmd.Flags().StringP("store", "s", "", "Specify the store to use for snippets")
+}
+
+func ApplySnipPasswordFlag(cmd *cobra.Command) {
+	cmd.Flags().StringP("password", "p", "", "Password for the snippet (if it is encrypted)")
 }
