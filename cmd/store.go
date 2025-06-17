@@ -18,12 +18,14 @@ package cmd
 
 import (
 	"fmt"
+	"path"
 
 	"slices"
 
 	"github.com/kkrishguptaa/mnemo/lib"
 	"github.com/kkrishguptaa/mnemo/util"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 var storeCmd = &cobra.Command{
@@ -37,7 +39,7 @@ var storeCmd = &cobra.Command{
 }
 
 func listStores(cmd *cobra.Command, args []string) {
-	stores := lib.ListStores()
+	stores := lib.ListStores(path.Join(util.ErrorHandler(cmd.Flags().GetString("path")), "stores"), viper.GetString("default_store"))
 
 	if len(stores) == 0 {
 		fmt.Printf("No stores found. Use 'mnemo store create [name]' to create a new store.\n")
@@ -51,14 +53,14 @@ func listStores(cmd *cobra.Command, args []string) {
 
 func createStore(cmd *cobra.Command, args []string) {
 	name := args[0]
-	stores := lib.ListStores()
+	stores := lib.ListStores(path.Join(util.ErrorHandler(cmd.Flags().GetString("path")), "stores"), viper.GetString("default_store"))
 
 	if slices.Contains(stores, name) {
 		util.ErrorPrinter(fmt.Errorf("store already exists, if you wish to clear it, use 'mnemo store clear %s' command", name))
 		return
 	}
 
-	lib.CreateStore(name)
+	lib.CreateStore(path.Join(util.ErrorHandler(cmd.Flags().GetString("path")), "stores"), name, viper.GetString("default_store"))
 	util.SuccessPrinter(fmt.Sprintf("Store '%s' created successfully.", name))
 }
 
@@ -68,9 +70,9 @@ func clearStore(cmd *cobra.Command, args []string) {
 		util.ErrorPrinter(fmt.Errorf("please provide a store name to clear"))
 		return
 	}
-	store := lib.FetchStore(name)
+	store := lib.FetchStore(path.Join(util.ErrorHandler(cmd.Flags().GetString("path")), "stores"), name, viper.GetString("default_store"))
 
-	lib.WriteStore(store.Name, []lib.Snippet{})
+	lib.WriteStore(path.Join(util.ErrorHandler(cmd.Flags().GetString("path")), "stores"), store.Name, []lib.Snippet{})
 
 	util.SuccessPrinter(fmt.Sprintf("Store '%s' cleared successfully.", name))
 }
@@ -82,7 +84,7 @@ func deleteStore(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	lib.DeleteStore(name)
+	lib.DeleteStore(path.Join(util.ErrorHandler(cmd.Flags().GetString("path")), "stores"), name)
 	util.SuccessPrinter(fmt.Sprintf("Store '%s' deleted successfully.", name))
 }
 

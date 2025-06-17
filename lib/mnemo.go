@@ -24,9 +24,6 @@ type Snippet struct {
 	Encrypted bool   `json:"encrypted"`
 }
 
-var home = util.ErrorHandler(os.UserHomeDir())
-var stores = path.Join(home, ".mnemo", "stores")
-
 func Encrypt(value string, password string) string {
 	password = strings.TrimSpace(password)
 	hash := sha256.Sum256([]byte(password))
@@ -46,7 +43,7 @@ func Decrypt(value string, password string) string {
 	return string(decrypted)
 }
 
-func FetchStore(name string) Store {
+func FetchStore(stores string, name string, defaultStore string) Store {
 	file := path.Join(stores, name+".json")
 
 	if _, err := os.Stat(stores); os.IsNotExist(err) {
@@ -54,12 +51,12 @@ func FetchStore(name string) Store {
 	}
 
 	if _, err := os.Stat(file); os.IsNotExist(err) {
-		if name != "default" {
+		if name != defaultStore {
 			util.ErrorPrinter(fmt.Errorf("store %s does not exist", name))
 			return Store{}
 		}
 
-		CreateStore(name)
+		CreateStore(stores, name, defaultStore)
 	}
 
 	bytes := util.ErrorHandler(os.ReadFile(file))
@@ -70,7 +67,7 @@ func FetchStore(name string) Store {
 	return store
 }
 
-func CreateStore(name string) Store {
+func CreateStore(stores string, name string, defaultStore string) Store {
 	if name == "" {
 		util.ErrorPrinter(fmt.Errorf("store name cannot be empty"))
 		return Store{}
@@ -96,7 +93,7 @@ func CreateStore(name string) Store {
 	return store
 }
 
-func ListStores() []string {
+func ListStores(stores string, defaultStore string) []string {
 	if _, err := os.Stat(stores); os.IsNotExist(err) {
 		util.ErrorPrinter(os.MkdirAll(stores, 0755))
 	}
@@ -114,7 +111,7 @@ func ListStores() []string {
 	return storeNames
 }
 
-func WriteStore(name string, snippets []Snippet) {
+func WriteStore(stores string, name string, snippets []Snippet) {
 	file := path.Join(stores, name+".json")
 
 	store := Store{Name: name, Data: snippets}
@@ -124,26 +121,7 @@ func WriteStore(name string, snippets []Snippet) {
 	util.ErrorPrinter(os.WriteFile(file, bytes, 0644))
 }
 
-func CreateSnippet(store Store, snipper Snippet) Snippet {
-	if snipper.Id == "" {
-		util.ErrorPrinter(fmt.Errorf("snippet id cannot be empty"))
-		return Snippet{}
-	}
-
-	for _, snippet := range store.Data {
-		if snippet.Id == snipper.Id {
-			util.ErrorPrinter(fmt.Errorf("snippet with id %s already exists", snipper.Id))
-			return Snippet{}
-		}
-	}
-
-	store.Data = append(store.Data, snipper)
-	WriteStore(store.Name, store.Data)
-
-	return snipper
-}
-
-func DeleteStore(name string) {
+func DeleteStore(stores string, name string) {
 	file := path.Join(stores, name+".json")
 
 	if _, err := os.Stat(file); os.IsNotExist(err) {

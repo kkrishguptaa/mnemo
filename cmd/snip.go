@@ -18,20 +18,23 @@ package cmd
 
 import (
 	"fmt"
+	"path"
 	"strings"
 
 	"github.com/charmbracelet/lipgloss"
 	"github.com/kkrishguptaa/mnemo/lib"
 	"github.com/kkrishguptaa/mnemo/util"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 // snipCmd represents the snip command
 var snipCmd = &cobra.Command{
-	Use:   "snip",
-	Short: "Manage your snippets",
-	Run:   listSnippets,
-	Args:  cobra.NoArgs,
+	Use:     "snip",
+	Short:   "Manage your snippets",
+	Run:     listSnippets,
+	Args:    cobra.NoArgs,
+	GroupID: "mnemo",
 }
 
 func listSnippets(cmd *cobra.Command, args []string) {
@@ -39,10 +42,10 @@ func listSnippets(cmd *cobra.Command, args []string) {
 	store, _ := cmd.Flags().GetString("store")
 
 	if store == "" {
-		store = "default"
+		store = viper.GetString("default_store")
 	}
 
-	Store := lib.FetchStore(store)
+	Store := lib.FetchStore(path.Join(util.ErrorHandler(cmd.Flags().GetString("path")), "stores"), store, viper.GetString("default_store"))
 
 	for _, snippet := range Store.Data {
 		if snippet.Encrypted {
@@ -61,7 +64,7 @@ func listSnippets(cmd *cobra.Command, args []string) {
 func CreateSnip(cmd *cobra.Command, args []string) {
 	store, _ := cmd.Flags().GetString("store")
 	if store == "" {
-		store = "default"
+		store = viper.GetString("default_store")
 	}
 
 	encrypted := false
@@ -80,7 +83,7 @@ func CreateSnip(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	Store := lib.FetchStore(store)
+	Store := lib.FetchStore(path.Join(util.ErrorHandler(cmd.Flags().GetString("path")), "stores"), store, viper.GetString("default_store"))
 
 	if encrypted {
 		value = lib.Encrypt(value, password)
@@ -94,7 +97,7 @@ func CreateSnip(cmd *cobra.Command, args []string) {
 
 	Store.Data = append(Store.Data, snippet)
 
-	lib.WriteStore(store, Store.Data)
+	lib.WriteStore(path.Join(util.ErrorHandler(cmd.Flags().GetString("path")), "stores"), store, Store.Data)
 
 	util.SuccessPrinter("Snippet created successfully in store: " + store)
 }
@@ -102,7 +105,7 @@ func CreateSnip(cmd *cobra.Command, args []string) {
 func ReadSnip(cmd *cobra.Command, args []string) {
 	store, _ := cmd.Flags().GetString("store")
 	if store == "" {
-		store = "default"
+		store = viper.GetString("default_store")
 	}
 
 	if len(args) != 1 {
@@ -112,7 +115,7 @@ func ReadSnip(cmd *cobra.Command, args []string) {
 
 	key := args[0]
 
-	Store := lib.FetchStore(store)
+	Store := lib.FetchStore(path.Join(util.ErrorHandler(cmd.Flags().GetString("path")), "stores"), store, viper.GetString("default_store"))
 
 	for _, snippet := range Store.Data {
 		if snippet.Id == key {
@@ -139,7 +142,7 @@ func ReadSnip(cmd *cobra.Command, args []string) {
 func DeleteSnip(cmd *cobra.Command, args []string) {
 	store, _ := cmd.Flags().GetString("store")
 	if store == "" {
-		store = "default"
+		store = viper.GetString("default_store")
 	}
 
 	if len(args) != 1 {
@@ -149,7 +152,7 @@ func DeleteSnip(cmd *cobra.Command, args []string) {
 
 	key := args[0]
 
-	Store := lib.FetchStore(store)
+	Store := lib.FetchStore(path.Join(util.ErrorHandler(cmd.Flags().GetString("path")), "stores"), store, viper.GetString("default_store"))
 
 	snips := []lib.Snippet{}
 
@@ -164,7 +167,7 @@ func DeleteSnip(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	lib.WriteStore(store, snips)
+	lib.WriteStore(path.Join(util.ErrorHandler(cmd.Flags().GetString("path")), "stores"), store, snips)
 
 	util.SuccessPrinter(fmt.Sprintf("Snippet with key '%s' deleted successfully from store '%s'", key, store))
 }
@@ -176,7 +179,6 @@ func init() {
 		Aliases: []string{"ls"},
 		Run:     listSnippets,
 	}
-	ApplySnipStoreFlag(listSnipsCmd)
 	snipCmd.AddCommand(listSnipsCmd)
 
 	var createSnipCmd = &cobra.Command{
@@ -186,7 +188,6 @@ func init() {
 		Args:  cobra.ExactArgs(2),
 		Run:   CreateSnip,
 	}
-	ApplySnipStoreFlag(createSnipCmd)
 	ApplySnipPasswordFlag(createSnipCmd)
 	snipCmd.AddCommand(createSnipCmd)
 
@@ -197,7 +198,6 @@ func init() {
 		Args:  cobra.ExactArgs(1),
 		Run:   ReadSnip,
 	}
-	ApplySnipStoreFlag(readSnipCmd)
 	ApplySnipPasswordFlag(readSnipCmd)
 	snipCmd.AddCommand(readSnipCmd)
 
@@ -208,15 +208,10 @@ func init() {
 		Args:  cobra.ExactArgs(1),
 		Run:   DeleteSnip,
 	}
-	ApplySnipStoreFlag(deleteSnipCmd)
 	snipCmd.AddCommand(deleteSnipCmd)
 
 	rootCmd.AddCommand(snipCmd)
 
-}
-
-func ApplySnipStoreFlag(cmd *cobra.Command) {
-	cmd.Flags().StringP("store", "s", "", "Specify the store to use for snippets")
 }
 
 func ApplySnipPasswordFlag(cmd *cobra.Command) {

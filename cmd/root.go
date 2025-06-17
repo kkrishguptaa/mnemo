@@ -17,9 +17,14 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 package cmd
 
 import (
+	"fmt"
 	"os"
+	"path"
+	"strings"
 
+	"github.com/kkrishguptaa/mnemo/util"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 // rootCmd represents the base command when called without any subcommands
@@ -45,4 +50,45 @@ func init() {
 		ID:    "mnemo",
 		Title: "Mnemo Commands",
 	})
+
+	home := util.ErrorHandler(os.UserHomeDir())
+	defaultDirectory := home + "/.mnemo"
+
+	viper.SetConfigName("config")
+	viper.AddConfigPath(defaultDirectory) // Use the home directory for the config file
+	viper.SetConfigType("yaml")
+	if err := viper.ReadInConfig(); err != nil {
+		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
+			var defaultConfig = []byte(fmt.Sprintf(`
+# Mnemo Configuration File
+# This file is used to configure Mnemo settings.
+# Default store name
+default_store: default
+# Path to the stores directory
+path: %s
+`, defaultDirectory))
+			if err := os.MkdirAll(defaultDirectory, 0755); err != nil {
+				panic(err) // Handle error if directory creation fails
+			}
+			if err := os.WriteFile(path.Join(defaultDirectory, "config.yaml"), defaultConfig, 0644); err != nil {
+				panic(err) // Handle error if file creation fails
+			}
+		} else {
+			// Config file was found but another error was produced
+			panic(err)
+		}
+	}
+	viper.AutomaticEnv()                                   // read in environment variables that match
+	viper.SetEnvPrefix("MNEMO")                            // will be uppercased automatically
+	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_")) // replace dots with underscores in env vars
+	viper.SetDefault("default_store", "default")           // Set a default store name
+	viper.SetDefault("path", defaultDirectory)             // Set a default path for the stores
+	if err := os.MkdirAll(viper.GetString("path"), 0755); err != nil {
+		panic(err) // Handle error if directory creation fails
+	}
+
+	viper.BindPFlag("default_store", rootCmd.PersistentFlags().Lookup("store"))
+	viper.BindPFlag("path", rootCmd.PersistentFlags().Lookup("path"))
+	rootCmd.PersistentFlags().StringP("store", "s", viper.GetString("default_store"), "Specify the store to use (default is 'default')")
+	rootCmd.PersistentFlags().StringP("path", "P", viper.GetString("path"), "Specify the path to the stores directory")
 }
