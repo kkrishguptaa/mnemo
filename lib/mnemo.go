@@ -85,7 +85,7 @@ func CreateStore(stores string, name string, defaultStore string) Store {
 	}
 
 	store := Store{Name: name, Data: []Snippet{}}
-	bytes, err := json.Marshal(store.Data)
+	bytes, err := json.Marshal(store)
 	util.ErrorPrinter(err)
 
 	util.ErrorPrinter(os.WriteFile(file, bytes, 0644))

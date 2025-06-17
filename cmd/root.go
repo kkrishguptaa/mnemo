@@ -54,9 +54,9 @@ func init() {
 	home := util.ErrorHandler(os.UserHomeDir())
 	defaultDirectory := home + "/.mnemo"
 
-	viper.SetConfigName("config")
-	viper.AddConfigPath(defaultDirectory) // Use the home directory for the config file
-	viper.SetConfigType("yaml")
+	viper.SetConfigName("mnemo")
+	viper.AddConfigPath(home) // Use the home directory for the config file
+	viper.SetConfigType("yml")
 	if err := viper.ReadInConfig(); err != nil {
 		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
 			var defaultConfig = []byte(fmt.Sprintf(`
@@ -70,7 +70,7 @@ path: %s
 			if err := os.MkdirAll(defaultDirectory, 0755); err != nil {
 				panic(err) // Handle error if directory creation fails
 			}
-			if err := os.WriteFile(path.Join(defaultDirectory, "config.yaml"), defaultConfig, 0644); err != nil {
+			if err := os.WriteFile(path.Join(home, "mnemo.yml"), defaultConfig, 0644); err != nil {
 				panic(err) // Handle error if file creation fails
 			}
 		} else {
