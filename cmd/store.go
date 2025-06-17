@@ -22,6 +22,7 @@ import (
 
 	"slices"
 
+	"github.com/charmbracelet/lipgloss"
 	"github.com/kkrishguptaa/mnemo/lib"
 	"github.com/kkrishguptaa/mnemo/util"
 	"github.com/spf13/cobra"
@@ -33,9 +34,31 @@ var storeCmd = &cobra.Command{
 	Short:   "Manage your snippet stores",
 	Long:    `The store command allows you to manage your snippet stores. You can create, list, and delete stores, as well as perform other operations related to snippet storage.`,
 	GroupID: "mnemo",
-	RunE: func(cmd *cobra.Command, args []string) error {
-		return cmd.Help()
-	},
+	Run:     listStoreSnippets,
+}
+
+func listStoreSnippets(cmd *cobra.Command, args []string) {
+	if len(args) != 1 {
+		cmd.Help()
+		return
+	}
+
+	store := args[0]
+
+	Store := lib.FetchStore(path.Join(util.ErrorHandler(cmd.Flags().GetString("path")), "stores"), store, viper.GetString("default_store"))
+
+	for _, snippet := range Store.Data {
+		if snippet.Encrypted {
+			println(
+				lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("205")).Render(snippet.Id),
+				":",
+				lipgloss.NewStyle().Foreground(lipgloss.Color("8")).
+					Render("encrypted, use 'mnemo snip read "+snippet.Id+"' to view the value"))
+			continue
+		}
+
+		println(lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("205")).Render(snippet.Id), ":", snippet.Value)
+	}
 }
 
 func listStores(cmd *cobra.Command, args []string) {
