@@ -20,6 +20,8 @@ go install github.com/kkrishguptaa/mnemo
 
 ## ✌️ Usage
 
+https://github.com/user-attachments/assets/124ec1c8-c341-44ee-ab7d-fa329b0b703d
+
 ### Snips
 
 ```sh
